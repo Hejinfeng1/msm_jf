@@ -496,7 +496,7 @@ plot.prevalence.msm <- function(x, mintime=NULL, maxtime=NULL, timezero=NULL, in
     t <- seq(mintime, maxtime, length.out=100)
     obs <- observed.msm(x, t, interp, censtime, subset)
     expec <- expected.msm(x, t, timezero=timezero, initstates=initstates, covariates=covariates, misccovariates=misccovariates,
-                          piecewise.times=piecewise.times, piecewise.covariates=piecewise.covariates, risk=obs$risk, subset=subset, ci)[[2]]
+                          piecewise.times=piecewise.times, piecewise.covariates=piecewise.covariates, risk=obs$risk, subset=subset, ci, B, cl, cores)[[2]]
     expec <- ifelse(ci == "none",expec,expec[1])
     states <- seq(length.out=x$qmodel$nstates)
     S <- length(states)
@@ -508,7 +508,7 @@ plot.prevalence.msm <- function(x, mintime=NULL, maxtime=NULL, timezero=NULL, in
         plot(t, obs$obsperc[,i], type="l", ylim=c(0, 100), xlab=xlab, ylab=ylab, lwd=lwd.obs, lty=lty.obs, col=col.obs,
              main=rownames(x$qmodel$qmatrix)[i],...)
         lines(t, expec[,i], lwd=lwd.exp, lty=lty.exp, col=col.exp)
-    } else {
+    }} else {
         expec_ci <- data.frame(expec[2])
        for (i in states) {
         plot(t, obs$obsperc[,i], type="l", ylim=c(0, 100), xlab=xlab, ylab=ylab, lwd=lwd.obs, lty=lty.obs, col=col.obs,
@@ -520,7 +520,7 @@ plot.prevalence.msm <- function(x, mintime=NULL, maxtime=NULL, timezero=NULL, in
         line(t, expec_ci[,i + 6], lwd=lwd.exp, lty=lty.exp, col = ci.col)
     }
     }
-    }
+    
     if (!is.numeric(legend.pos) || length(legend.pos) != 2)
         legend.pos <- c(0.4*maxtime, 40)
     legend(x=legend.pos[1], y=legend.pos[2], legend=c("Observed","Expected"), lty=c(lty.obs,lty.exp), lwd=c(lwd.obs,lwd.exp), col=c(col.obs,col.exp))
