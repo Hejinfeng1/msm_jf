@@ -484,7 +484,11 @@ plot.prevalence.msm <- function(x, mintime=NULL, maxtime=NULL, timezero=NULL, in
                                 covariates="population", misccovariates="mean",
                                 piecewise.times=NULL, piecewise.covariates=NULL, xlab="Times",ylab="Prevalence (%)",
                                 lwd.obs=1, lwd.exp=1, lty.obs=1, lty.exp=2,
-                                col.obs="blue", col.exp="red", legend.pos=NULL,...){
+                                col.obs="blue", col.exp="red", legend.pos=NULL,ci = c("none","normal", "bootstrap"),
+                                cl = 0.95,
+                                B = 1000,
+                                cores = NULL,
+                                ci.col = "#f57373",...){
     if (!inherits(x, "msm")) stop("expected x to be a msm model")
     time <- model.extract(x$data$mf, "time")
     if (is.null(mintime)) mintime <- min(time)
@@ -492,16 +496,30 @@ plot.prevalence.msm <- function(x, mintime=NULL, maxtime=NULL, timezero=NULL, in
     t <- seq(mintime, maxtime, length.out=100)
     obs <- observed.msm(x, t, interp, censtime, subset)
     expec <- expected.msm(x, t, timezero=timezero, initstates=initstates, covariates=covariates, misccovariates=misccovariates,
-                          piecewise.times=piecewise.times, piecewise.covariates=piecewise.covariates, risk=obs$risk, subset=subset, ci="none")[[2]]
+                          piecewise.times=piecewise.times, piecewise.covariates=piecewise.covariates, risk=obs$risk, subset=subset, ci)[[2]]
+    expec <- ifelse(ci == "none",expec,expec[1])
     states <- seq(length.out=x$qmodel$nstates)
     S <- length(states)
     ncols <- ceiling(sqrt(S))
     nrows <- if (floor(sqrt(S))^2 < S && S <= floor(sqrt(S))*ceiling(sqrt(S))) floor(sqrt(S)) else ceiling(sqrt(S))
     par(mfrow=c(nrows, ncols))
-    for (i in states) {
+    if(ci == "none"){
+        for (i in states) {
         plot(t, obs$obsperc[,i], type="l", ylim=c(0, 100), xlab=xlab, ylab=ylab, lwd=lwd.obs, lty=lty.obs, col=col.obs,
              main=rownames(x$qmodel$qmatrix)[i],...)
         lines(t, expec[,i], lwd=lwd.exp, lty=lty.exp, col=col.exp)
+    } else {
+        expec_ci <- data.frame(expec[2])
+       for (i in states) {
+        plot(t, obs$obsperc[,i], type="l", ylim=c(0, 100), xlab=xlab, ylab=ylab, lwd=lwd.obs, lty=lty.obs, col=col.obs,
+             main=rownames(x$qmodel$qmatrix)[i],...)
+        lines(t, expec[,i], lwd=lwd.exp, lty=lty.exp, col=col.exp)
+        polygon(c(t,rev(t)),
+        c(expec_ci[,i],rev(expec_ci[,i +6])),col = ci.col, border = NA)
+        line(t, expec_ci[,i], lwd=lwd.exp, lty=lty.exp, col = ci.col)
+        line(t, expec_ci[,i + 6], lwd=lwd.exp, lty=lty.exp, col = ci.col)
+    }
+    }
     }
     if (!is.numeric(legend.pos) || length(legend.pos) != 2)
         legend.pos <- c(0.4*maxtime, 40)
